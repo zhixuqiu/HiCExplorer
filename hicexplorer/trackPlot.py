@@ -908,6 +908,9 @@ class PlotHiCMatrix(TrackPlot):
 
         sys.stderr.write("setting min, max values for track {} to: {}, {}\n".format(self.properties['section_name'],
                                                                                     vmin, vmax))
+        np.savetxt("/tmp/test_matrix_export.txt",matrix)
+        np.savetxt("/tmp/test_matrix_export_start_pos.txt",start_pos)
+
         img = self.pcolormesh_45deg(matrix, start_pos, vmax=vmax, vmin=vmin)
         img.set_rasterized(True)
         if self.plot_inverted:
