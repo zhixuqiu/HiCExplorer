@@ -31,7 +31,7 @@ def parseArguments(args=None):
 
     parser.add_argument('--range',
                         help='In bp with the format low_range:high_range, '
-                        'for example 1000000:2000000',
+                        'for example 1000000:2000000. Furthermore ..',
                         required=True)
 
     parser.add_argument('--numberOfBins',
