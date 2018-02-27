@@ -493,21 +493,32 @@ def plot_diagnostic_heatmaps(chrom_diagonals, cluster_ids, M_half, args):
 
 
 def main(args=None):
+    import os.path
+    ROOT = os.path.dirname(os.path.abspath(__file__)) + "/test/test_data/"
     args = parse_arguments().parse_args(args)
 
-    ma = hm.hiCMatrix(args.matrix)
+    ma = hm.hiCMatrix(ROOT + "Li_et_al_2015.h5")
     ma.maskBins(ma.nan_bins)
     ma.matrix.data[np.isnan(ma.matrix.data)] = 0
+    mac = hm.hiCMatrix(ROOT + "Li_et_al_2015.cool")
+    mac.maskBins(mac.nan_bins)
+    mac.matrix.data[np.isnan(mac.matrix.data)] = 0
 
     bin_size = ma.getBinSize()
     ma.maskBins(ma.nan_bins)
     ma.matrix.data = ma.matrix.data
+
+    mac.maskBins(mac.nan_bins)
+    mac.matrix.data = mac.matrix.data
+
     new_intervals = hicexplorer.utilities.enlarge_bins(ma.cut_intervals)
     ma.setCutIntervals(new_intervals)
+    mac.setCutIntervals(new_intervals)
     min_dist, max_dist = args.range.split(":")
 
     if args.chromosomes:
         ma.keepOnlyTheseChr(args.chromosomes)
+        mac.keepOnlyTheseChr(args.chromosomes)
     chrom_list = list(ma.chrBinBoundaries)
     log.info("checking range {}-{}".format(min_dist, max_dist))
     min_dist = int(min_dist)
@@ -541,6 +552,7 @@ def main(args=None):
     chrom_diagonals = OrderedDict()
     chrom_contact_position = {}
     seen = {}
+    from scipy.spatial import distance
 
     center_values = []
 
@@ -567,6 +579,11 @@ def main(args=None):
             # current interval at the given depth range
 
             bin_id = ma.getRegionBinRange(toBytes(chrom), start, end)
+
+            bin_idc = mac.getRegionBinRange(toBytes(chrom), start, end)
+
+            assert bin_id == bin_idc
+
             if bin_id is None:
                 continue
             else:
@@ -578,6 +595,10 @@ def main(args=None):
                     log.info("Number of contacts considered: {:,}".format(counter))
 
                 bin_id2 = ma.getRegionBinRange(toBytes(chrom), start2, end2)
+                bin_id2c = mac.getRegionBinRange(toBytes(chrom), start2, end2)
+
+                assert bin_id2 == bin_id2c
+
                 if bin_id2 is None:
                     continue
                 else:
@@ -592,7 +613,9 @@ def main(args=None):
                     if idx1 - M_half < chrom_bin_range[0] or idx2 + 1 + M_half > chrom_bin_range[1]:
                         continue
                     try:
-                        mat_to_append = ma.matrix[idx1 - M_half:idx1 + M_half + 1, :][:, idx2 - M_half:idx2 + M_half + 1].todense().astype(float)
+                        mat_to_append = ma.matrix[idx1 - M_half:idx1 + M_half + 1, idx2 - M_half:idx2 + M_half + 1].todense().astype(float)
+                        mat_to_appendc = mac.matrix[idx1 - M_half:idx1 + M_half + 1, idx2 - M_half:idx2 + M_half + 1].todense().astype(float)
+                        eu_dist = distance.euclidean(mat_to_append.reshape(1,-1), mat_to_appendc.reshape(1,-1))
                     except IndexError:
                         log.info("index error for {} {}".format(idx1, idx2))
                         continue
@@ -602,6 +625,10 @@ def main(args=None):
                     if mat_to_append.sum() == 0:
                         empty_mat += 1
                         continue
+
+                    if eu_dist > 5:
+                        print("distance: {}".format(eu_dist))
+                        import ipdb; ipdb.set_trace()
                     # to account for the fact that submatrices
                     # close to the diagonal have more counts thatn
                     # submatrices far from the diagonal
