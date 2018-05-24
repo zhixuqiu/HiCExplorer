@@ -183,18 +183,19 @@ class hiCMatrix:
         if correction_factors_data_frame is not None:
             log.debug("Apply correction factors")
             # apply correction factors to matrix
-            # a_i,j = a_i,j / c_i *c_j
+            # a_i,j = a_i,j * c_i *c_j
             matrix.eliminate_zeros()
             matrix.data = matrix.data.astype(float)
 
             correction_factors = convertNansToOnes(np.array(correction_factors_data_frame.values).flatten())
+            log.debug('correction_factors {}'.format(correction_factors))
             # apply only if there are not only 1's
             if np.sum(correction_factors) != len(correction_factors):
                 instances, features = matrix.nonzero()
                 instances_factors = correction_factors[instances]
                 features_factors = correction_factors[features]
                 instances_factors *= features_factors
-                matrix.data /= instances_factors
+                matrix.data *= instances_factors
 
         cut_intervals = []
 
