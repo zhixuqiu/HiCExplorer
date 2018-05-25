@@ -129,7 +129,14 @@ def parse_arguments(args=None):
                            'correlation.',
                            default=None,
                            nargs='+')
-
+    parserOpt.add_argument('--correction_name',
+                           help='Name of the column which stores the correction factors. The information about the '
+                                'column names can be figured out with the tool hicInfo.',
+                           default='weight')
+    parserOpt.add_argument('--correction_operation',
+                           help='Operation to use to apply the correction on the data. Default is a multiplication',
+                           choices=['*', '/'],
+                           default='*')
     parserOpt.add_argument('--threads',
                            help='Number of threads. Using the python multiprocessing module. Is only used with \'cool\' matrix format.'
                            ' One master process which is used to read the input file into the buffer and one process which is merging '
@@ -269,9 +276,9 @@ def main(args=None):
         log.info("loading hic matrix {}\n".format(matrix))
 
         if (check_cooler(args.matrices[i])) and args.chromosomes is not None and len(args.chromosomes) == 1:
-            _mat = hm.hiCMatrix(matrix, chrnameList=args.chromosomes)
+            _mat = hm.hiCMatrix(matrix, chrnameList=args.chromosomes, pCorrectionOperation=args.correction_operation, pCorrectionFactorTable=args.correction_name)
         else:
-            _mat = hm.hiCMatrix(matrix)
+            _mat = hm.hiCMatrix(matrix, pCorrectionOperation=args.correction_operation, pCorrectionFactorTable=args.correction_name)
             if args.chromosomes:
                 _mat.keepOnlyTheseChr(args.chromosomes)
             _mat.filterOutInterChrCounts()

@@ -1,6 +1,7 @@
 from __future__ import division
 import argparse
 from hicexplorer import HiCMatrix as hm
+from hicexplorer.HiCMatrix import check_cooler
 from hicexplorer._version import __version__
 from hicexplorer.utilities import toString
 
@@ -68,3 +69,5 @@ def main():
         print("Minimum (non zero):\t{}".format(min_non_zero))
         print("Maximum:\t{}".format(max_non_zero))
         print("NaN bins:\t{}".format(num_nan_bins))
+        if check_cooler(matrix):
+            hic_ma.getInformationCoolerBinNames()

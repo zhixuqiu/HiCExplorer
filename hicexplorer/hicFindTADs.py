@@ -153,7 +153,14 @@ of information at certain bins, and depending on the parameters used with this t
                            help='Minimum distance between boundaries (in bp). This parameter can be '
                            'used to reduce spurious boundaries caused by noise.',
                            type=int)
-
+    parserOpt.add_argument('--correction_name',
+                           help='Name of the column which stores the correction factors. The information about the '
+                                'column names can be figured out with the tool hicInfo.',
+                           default='weight')
+    parserOpt.add_argument('--correction_operation',
+                           help='Operation to use to apply the correction on the data. Default is a multiplication',
+                           choices=['*', '/'],
+                           default='*')
     parserOpt.add_argument('--numberOfProcessors', '-p',
                            help='Number of processors to use ',
                            type=int,

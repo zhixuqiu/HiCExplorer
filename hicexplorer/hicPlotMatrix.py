@@ -133,6 +133,14 @@ def parse_arguments(args=None):
                            help='Scale the values of a bigwig file by the given factor.',
                            type=float,
                            default=1.0)
+    parserOpt.add_argument('--correction_name',
+                           help='Name of the column which stores the correction factors. The information about the '
+                                'column names can be figured out with the tool hicInfo.',
+                           default='weight')
+    parserOpt.add_argument('--correction_operation',
+                           help='Operation to use to apply the correction on the data. Default is a multiplication',
+                           choices=['*', '/'],
+                           default='*')
     parserOpt.add_argument('--help', '-h', action='help', help='show this help message and exit')
 
     parserOpt.add_argument('--version', action='version',
@@ -476,7 +484,7 @@ def main(args=None):
             args.region2 = None
             regionsToRetrieve = args.chromosomeOrder
 
-        ma = HiCMatrix.hiCMatrix(args.matrix, chrnameList=regionsToRetrieve)
+        ma = HiCMatrix.hiCMatrix(args.matrix, chrnameList=regionsToRetrieve, pCorrectionOperation=args.correction_operation, pCorrectionFactorTable=args.correction_name)
 
         if args.clearMaskedBins:
             ma.maskBins(ma.nan_bins)
@@ -491,7 +499,7 @@ def main(args=None):
         matrix = np.asarray(ma.matrix.todense().astype(float))
 
     else:
-        ma = HiCMatrix.hiCMatrix(args.matrix)
+        ma = HiCMatrix.hiCMatrix(args.matrix, pCorrectionOperation=args.correction_operation, pCorrectionFactorTable=args.correction_name)
         if args.clearMaskedBins:
             ma.maskBins(ma.nan_bins)
         if args.chromosomeOrder:

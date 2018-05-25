@@ -89,7 +89,14 @@ def parse_arguments(args=None):
                            nargs=2,
                            type=float
                            )
-
+    parserOpt.add_argument('--correction_name',
+                           help='Name of the column which stores the correction factors. The information about the '
+                                'column names can be figured out with the tool hicInfo.',
+                           default='weight')
+    parserOpt.add_argument('--correction_operation',
+                           help='Operation to use to apply the correction on the data. Default is a multiplication',
+                           choices=['*', '/'],
+                           default='*')
     parserOpt.add_argument('--help', '-h', action='help', help='show this help message and exit')
 
     parserOpt.add_argument('--version', action='version',
@@ -312,7 +319,7 @@ def main(args=None):
 
     chroms = set()
     for matrix_file in args.matrices:
-        hic_ma = HiCMatrix.hiCMatrix(matrix_file)
+        hic_ma = HiCMatrix.hiCMatrix(matrix_file, pCorrectionOperation=args.correction_operation, pCorrectionFactorTable=args.correction_name)
         matrix_sum[matrix_file] = hic_ma.matrix.sum()
         if args.chromosomeExclude is None:
             args.chromosomeExclude = []

@@ -49,7 +49,7 @@ class hiCMatrix:
     """
 
     def __init__(self, matrixFile=None, file_format=None, skiprows=None, chrnameList=None, bplimit=None,
-                 cooler_only_init=None, pIntraChromosomalOnly=None):
+                 cooler_only_init=None, pIntraChromosomalOnly=None, pCorrectionOperation=None, pCorrectionFactorTable=None):
         self.correction_factors = None  # this value is set in case a matrix was iteratively corrected
         self.non_homogeneous_warning_already_printed = False
         self.distance_counts = None  # only defined when getCountsByDistance is called
@@ -128,7 +128,8 @@ class hiCMatrix:
                     return
                 else:
                     self.matrix, self.cut_intervals, self.nan_bins, self.distance_counts, self.correction_factors = \
-                        self.load_cool(matrixFile, pChrnameList=chrnameList, pIntraChromosomalOnly=pIntraChromosomalOnly)
+                        self.load_cool(matrixFile, pChrnameList=chrnameList, pIntraChromosomalOnly=pIntraChromosomalOnly,
+                                       pCorrectionOperation=pCorrectionOperation, pCorrectionFactorTable=pCorrectionFactorTable)
                     self.restoreMaskedBins()
             else:
                 exit("matrix format not known.")
@@ -142,7 +143,14 @@ class hiCMatrix:
     def load_cool_matrix(self, pChr):
         return self.cooler_file.matrix(balance=False, as_pixels=True).fetch(pChr)
 
-    def load_cool(self, pMatrixFile, pChrnameList=None, pMatrixOnly=None, pIntraChromosomalOnly=None):
+    def load_cool(self, pMatrixFile, pChrnameList=None, pMatrixOnly=None, pIntraChromosomalOnly=None,
+                  pCorrectionOperation=None, pCorrectionFactorTable=None):
+
+        pCorrectionFactorTable = toString(pCorrectionFactorTable)
+        pCorrectionOperation = toString(pCorrectionOperation)
+
+        if pCorrectionFactorTable is 'None':
+            pCorrectionFactorTable = None
         try:
             cooler_file = cooler.Cooler(pMatrixFile)
         except Exception:
@@ -168,18 +176,20 @@ class hiCMatrix:
         if pChrnameList is not None:
             if len(pChrnameList) == 1:
                 cut_intervals_data_frame = cooler_file.bins().fetch(pChrnameList[0])
-
-                if 'weight' in cut_intervals_data_frame:
-                    correction_factors_data_frame = cut_intervals_data_frame['weight']
+                if pCorrectionFactorTable is not None:
+                    if pCorrectionFactorTable in cut_intervals_data_frame:
+                        correction_factors_data_frame = cut_intervals_data_frame[pCorrectionFactorTable]
             else:
                 exit("Operation to load more than one chr from bins is not supported.")
         else:
-            if 'weight' in cooler_file.bins():
-                correction_factors_data_frame = cooler_file.bins()[['weight']][:]
+            if pCorrectionFactorTable is not None:
+                if pCorrectionFactorTable in cooler_file.bins():
+                    correction_factors_data_frame = cooler_file.bins()[[pCorrectionFactorTable]][:]
 
             cut_intervals_data_frame = cooler_file.bins()[['chrom', 'start', 'end']][:]
 
         correction_factors = None
+
         if correction_factors_data_frame is not None:
             log.debug("Apply correction factors")
             # apply correction factors to matrix
@@ -187,7 +197,7 @@ class hiCMatrix:
             matrix.eliminate_zeros()
             matrix.data = matrix.data.astype(float)
 
-            correction_factors = convertNansToOnes(np.array(correction_factors_data_frame.values).flatten())
+            correction_factors = convertNansInfsToOnes(np.array(correction_factors_data_frame.values).flatten())
             log.debug('correction_factors {}'.format(correction_factors))
             # apply only if there are not only 1's
             if np.sum(correction_factors) != len(correction_factors):
@@ -195,7 +205,10 @@ class hiCMatrix:
                 instances_factors = correction_factors[instances]
                 features_factors = correction_factors[features]
                 instances_factors *= features_factors
-                matrix.data *= instances_factors
+                if pCorrectionOperation is '/':
+                    matrix.data /= instances_factors
+                elif pCorrectionOperation is '*':
+                    matrix.data *= instances_factors
 
         cut_intervals = []
 
@@ -221,7 +234,7 @@ class hiCMatrix:
         distance_counts = None
 
         matrix = hiCMatrix.fillLowerTriangle(matrix)
-
+        self.cooler_file = cooler_file
         return matrix, cut_intervals, nan_bins, distance_counts, correction_factors
 
     @staticmethod
@@ -313,6 +326,9 @@ class hiCMatrix:
             correction_factors = None
 
         return matrix, cut_intervals, nan_bins, distance_counts, correction_factors
+
+    def getInformationCoolerBinNames(self):
+        log.info('The following columns are available: {}'.format(self.cooler_file.bins().columns.values))
 
     @staticmethod
     def fillLowerTriangle(matrix):
@@ -1317,7 +1333,7 @@ class hiCMatrix:
 
         # append correction factors if they exist
         if self.correction_factors is not None and pApplyCorrection:
-            weight = convertNansToOnes(np.array(self.correction_factors).flatten())
+            weight = convertNansInfsToOnes(np.array(self.correction_factors).flatten())
             bins_data_frame = bins_data_frame.assign(weight=weight)
 
         # get only the upper triangle of the matrix to save to disk
@@ -1975,13 +1991,22 @@ class hiCMatrix:
 
 
 def check_cooler(pFileName):
-    if pFileName.endswith('.cool') or cooler.io.is_cooler(pFileName) or'.mcool' in pFileName:
+    if pFileName.endswith('.cool') or cooler.io.is_cooler(pFileName) or '.mcool' in pFileName:
         return True
+    try:
+        cooler.Cooler(pFileName)
+        return True
+    except Exception:
+        return False
     return False
 
 
-def convertNansToOnes(pArray):
+def convertNansInfsToOnes(pArray):
     nan_elements = np.flatnonzero(np.isnan(pArray))
     if len(nan_elements) > 0:
         pArray[nan_elements] = 1.0
+
+    inf_elements = np.flatnonzero(np.isinf(pArray))
+    if len(inf_elements) > 0:
+        pArray[inf_elements] = 1.0
     return pArray

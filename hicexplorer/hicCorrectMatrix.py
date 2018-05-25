@@ -100,7 +100,14 @@ Statistical Techniques, Edward F. Mykytka, Ph.D., Editor).
                               help='Max value for the x-axis in counts per bin.',
                               default=None,
                               type=float)
-
+    plot_modeOpt.add_argument('--correction_name',
+                              help='Name of the column which stores the correction factors. The information about the '
+                              'column names can be figured out with the tool hicInfo.',
+                              default='weight')
+    plot_modeOpt.add_argument('--correction_operation',
+                              help='Operation to use to apply the correction on the data. Default is a multiplication',
+                              choices=['*', '/'],
+                              default='*')
     plot_modeOpt.add_argument(
         '--perchr',
         help='Compute histogram per chromosome. For samples from cells with uneven number '
@@ -196,7 +203,14 @@ def correct_subparser():
                            help='Normalize each chromosome separately. This is useful for '
                            'samples from cells with uneven number of chromosomes and/or translocations.',
                            action='store_true')
-
+    parserOpt.add_argument('--correction_name',
+                           help='Name of the column which stores the correction factors. The information about the '
+                                'column names can be figured out with the tool hicInfo.',
+                           default='weight')
+    parserOpt.add_argument('--correction_operation',
+                           help='Operation to use to apply the correction on the data. Default is a multiplication',
+                           choices=['*', '/'],
+                           default='*')
     parserOpt.add_argument('--verbose',
                            help='Print processing status',
                            action='store_true')
@@ -550,9 +564,9 @@ def main(args=None):
 
     # args.chromosomes
     if check_cooler(args.matrix) and args.chromosomes is not None and len(args.chromosomes) == 1:
-        ma = hm.hiCMatrix(args.matrix, chrnameList=toString(args.chromosomes))
+        ma = hm.hiCMatrix(args.matrix, chrnameList=toString(args.chromosomes), pCorrectionOperation=args.correction_operation, pCorrectionFactorTable=args.correction_name)
     else:
-        ma = hm.hiCMatrix(args.matrix)
+        ma = hm.hiCMatrix(args.matrix, pCorrectionOperation=args.correction_operation, pCorrectionFactorTable=args.correction_name)
 
         if args.chromosomes:
             ma.reorderChromosomes(toString(args.chromosomes))

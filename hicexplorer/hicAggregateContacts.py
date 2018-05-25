@@ -75,6 +75,14 @@ def parse_arguments(args=None):
                            help='Type of average to compute final matrix. Options are mean and median. Default is median.',
                            choices=['mean', 'median'],
                            default='median')
+    parserOpt.add_argument('--correction_name',
+                           help='Name of the column which stores the correction factors. The information about the '
+                                'column names can be figured out with the tool hicInfo.',
+                           default='weight')
+    parserOpt.add_argument('--correction_operation',
+                           help='Operation to use to apply the correction on the data. Default is a multiplication',
+                           choices=['*', '/'],
+                           default='*')
 
     parserOpt.add_argument("--help", "-h", action="help", help="show this help message and exit")
 
@@ -495,7 +503,7 @@ def plot_diagnostic_heatmaps(chrom_diagonals, cluster_ids, M_half, args):
 def main(args=None):
     args = parse_arguments().parse_args(args)
 
-    ma = hm.hiCMatrix(args.matrix)
+    ma = hm.hiCMatrix(args.matrix, pCorrectionOperation=args.correction_operation, pCorrectionFactorTable=args.correction_name)
     ma.maskBins(ma.nan_bins)
     ma.matrix.data[np.isnan(ma.matrix.data)] = 0
 

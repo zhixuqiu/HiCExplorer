@@ -53,7 +53,14 @@ def parse_arguments(args=None):
                            help='set to merge for using a running '
                            'window of length --numBins.',
                            action='store_true')
-
+    parserOpt.add_argument('--correction_name',
+                           help='Name of the column which stores the correction factors. The information about the '
+                                'column names can be figured out with the tool hicInfo.',
+                           default='weight')
+    parserOpt.add_argument('--correction_operation',
+                           help='Operation to use to apply the correction on the data. Default is a multiplication',
+                           choices=['*', '/'],
+                           default='*')
     parserOpt.add_argument('--help', '-h', action='help', help='show this help message and exit')
 
     parserOpt.add_argument('--version', action='version',
@@ -272,7 +279,7 @@ def merge_bins(hic, num_bins):
 def main(args=None):
 
     args = parse_arguments().parse_args(args)
-    hic = hm.hiCMatrix(args.matrix)
+    hic = hm.hiCMatrix(args.matrix, pCorrectionOperation=args.correction_operation, pCorrectionFactorTable=args.correction_name)
 
     if args.runningWindow:
         merged_matrix = running_window_merge(hic, args.numBins)

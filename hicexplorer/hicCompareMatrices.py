@@ -36,7 +36,14 @@ def parse_arguments(args=None):
                            help='Operation to apply to the matrices.',
                            choices=['diff', 'ratio', 'log2ratio'],
                            default='log2ratio')
-
+    parserOpt.add_argument('--correction_name',
+                           help='Name of the column which stores the correction factors. The information about the '
+                                'column names can be figured out with the tool hicInfo.',
+                           default='weight')
+    parserOpt.add_argument('--correction_operation',
+                           help='Operation to use to apply the correction on the data. Default is a multiplication',
+                           choices=['*', '/'],
+                           default='*')
     parserOpt.add_argument("--help", "-h", action="help", help="show this help message and exit")
 
     parserOpt.add_argument('--version', action='version',
@@ -51,8 +58,8 @@ def main(args=None):
     if args.operation not in ['diff', 'ratio', 'log2ratio']:
         exit("Operation not found. Please use 'diff', 'ratio' or 'log2ratio'.")
 
-    hic1 = hm.hiCMatrix(args.matrices[0])
-    hic2 = hm.hiCMatrix(args.matrices[1])
+    hic1 = hm.hiCMatrix(args.matrices[0], pCorrectionOperation=args.correction_operation, pCorrectionFactorTable=args.correction_name)
+    hic2 = hm.hiCMatrix(args.matrices[1], pCorrectionOperation=args.correction_operation, pCorrectionFactorTable=args.correction_name)
 
     if hic1.matrix.shape != hic2.matrix.shape:
         exit("The two matrices have different size. Use matrices having the same resolution and created using"
